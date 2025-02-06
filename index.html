@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>空室カレンダー</title>
+  <style>
+    /* 全体のデザイン */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom, #f7faff, #d8ecf3);
+      /* display: flex; ... を削除し、通常のブロック要素で縦並びに */
+      /* もし中央寄せをしたい場合は .container 的な要素を用意して内包する方法もあります */
+    }
+
+    /* カレンダー＆フォームをまとめるコンテナ */
+    #calendar-container {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 800px;
+      text-align: center;
+      margin: 20px auto; /* autoで左右中央寄せ */
+    }
+
+    /* タイトル */
+    h1 {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    /* 月切り替えボタン */
+    .month-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    /* カレンダー */
+    #calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .day-header {
+      font-weight: bold;
+      background-color: #e9ecef;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .day-cell {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 14px;
+      height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: default;
+      background-color: #f9f9f9;
+      position: relative;
+    }
+    .day-cell.full {
+      background-color: #ffeaea;
+      color: #d9534f;
+    }
+    .day-cell.available {
+      background-color: #e8fbe8;
+      color: #28a745;
+      cursor: pointer;
+    }
+    .day-cell.no-data {
+      color: #ccc;
+      background-color: #f9f9f9;
+    }
+    .price {
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    .day-cell.selected-range {
+      background-color: #ffd966 !important;
+    }
+
+    /* 予約フォーム */
+    form#reservation-form {
+      text-align: left;
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    form#reservation-form h2 {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #333;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #333;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      font-size: 14px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #submit-btn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 10px 30px;
+      font-size: 16px;
+      background-color: #28a745;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #submit-btn:hover {
+      background-color: #218838;
+    }
+
+    /* 予約台帳・在庫一覧（下に配置） */
+    #reservation-ledger,
+    #room-inventory {
+      background: white;
+      margin-top: 30px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 800px;
+      margin-left: auto;
+      margin-right: auto; /* 横中央寄せ */
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    h2 {
+      margin-top: 0;
+    }
+
+    /* スマホなど画面が狭い場合 */
+    @media (max-width: 600px) {
+      #calendar {
+        gap: 5px;
+      }
+      .day-cell {
+        height: 60px;
+        font-size: 12px;
+      }
+      .day-header {
+        font-size: 12px;
+        padding: 5px;
+      }
+      #calendar-container {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- カレンダー・予約フォーム（最上部に配置） -->
+  <div id="calendar-container">
+    <h1>空室カレンダー</h1>
+    <div class="month-header">
+      <button id="prev-month">前の月</button>
+      <span id="current-month">2025年2月</span>
+      <button id="next-month">次の月</button>
+    </div>
+    <div id="calendar"></div>
+
+    <form id="reservation-form">
+      <h2>ご予約情報</h2>
+      <input type="hidden" id="checkin-date" name="checkin-date" />
+      <input type="hidden" id="checkout-date" name="checkout-date" />
+
+      <div class="form-group">
+        <label for="room-category">部屋カテゴリー：</label>
+        <select id="room-category" name="room-category" required>
+          <option value="">選択してください</option>
+          <option value="standard">スタンダード</option>
+          <option value="deluxe">デラックス</option>
+          <option value="suite">スイート</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="name">氏名：</label>
+        <input type="text" id="name" name="name" placeholder="例）山田 太郎" required/>
+      </div>
+      <div class="form-group">
+        <label for="phone">電話番号：</label>
+        <input type="tel" id="phone" name="phone" placeholder="例）090-1234-5678" required/>
+      </div>
+      <div class="form-group">
+        <label for="email">メールアドレス：</label>
+        <input type="email" id="email" name="email" placeholder="例）example@example.com" required/>
+      </div>
+      <div class="form-group">
+        <label for="guests">宿泊人数：</label>
+        <input type="number" id="guests" name="guests" min="1" placeholder="人数を入力" required/>
+      </div>
+
+      <button type="submit" id="submit-btn">送信</button>
+    </form>
+  </div>
+
+  <!-- 予約台帳（カレンダー＆フォームの下） -->
+  <div id="reservation-ledger">
+    <h2>予約台帳</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>チェックイン</th>
+          <th>チェックアウト</th>
+          <th>部屋カテゴリー</th>
+          <th>氏名</th>
+          <th>電話番号</th>
+          <th>メールアドレス</th>
+          <th>人数</th>
+        </tr>
+      </thead>
+      <tbody id="reservation-list"></tbody>
+    </table>
+  </div>
+
+  <!-- 部屋在庫一覧（さらに下） -->
+  <div id="room-inventory">
+    <h2>部屋在庫一覧</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>日付</th>
+          <th>部屋タイプ</th>
+          <th>残在庫</th>
+          <th>料金</th>
+        </tr>
+      </thead>
+      <tbody id="inventory-list"></tbody>
+    </table>
+  </div>
+
+
+  <!-- Firebase & Firestore関連のスクリプトはそのまま -->
+  <script type="module">
+    /******************************************************
+     * ここにFirebase設定・Firestore連携・カレンダー表示処理
+     * 予約フォーム送信処理などの既存コードを置いてください
+     ******************************************************/
+  </script>
+</body>
+</html>
